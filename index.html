@@ -2,117 +2,160 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>PV Matrix - Geconfigureerd</title>
+    <title>PV Matrix - Docenten Paneel</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        :root { --primary: #1d4e89; --success: #28a745; --bg: #f4f7f9; }
-        body { font-family: sans-serif; background: var(--bg); padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .config-box { background: #fff5f5; border: 1px dashed red; padding: 10px; margin-bottom: 20px; font-size: 12px; color: #333; }
-        .input-sectie { border: 2px solid var(--primary); padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { padding: 10px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; background: var(--primary); color: white; width: 100%; }
-        .aangifte-kaart { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid var(--primary); background: #fff; }
-        .pv-foto { width: 100%; max-height: 400px; object-fit: contain; margin-top: 10px; }
+        :root { --blauw: #1d4e89; --groen: #28a745; --rood: #dc3545; --geel: #fffbe6; --grijs: #f4f7f9; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--grijs); margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* Dashboard Stijl */
+        .instellingen-blok { background: var(--geel); border: 1px solid #ffe58f; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        
+        /* Bewijsstukken Grid (De foto's van de docent) */
+        .bewijs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .bewijs-item { background: white; padding: 10px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
+        .bewijs-img { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+
+        /* Matrix Feed */
+        .pv-kaart { border: 1px solid #ddd; padding: 20px; margin-bottom: 30px; border-radius: 8px; border-left: 8px solid var(--blauw); background: #fff; }
+        .vinkjes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+        .vinkje { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; background: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #ddd; }
+        
+        .btn { padding: 12px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 6px; color: white; width: 100%; }
+        textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; min-height: 150px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 id="main-title">Laden...</h1>
-
+    
     <script>
         // ============================================================
-        // 🛠️ ALLES WAT JE MOET CONFIGUREREN (STAP VOOR STAP)
+        // 🛠️ HET DOCENTEN DASHBOARD (Pas hier je les aan)
         // ============================================================
 
-        const MIJN_CONFIG = {
-            // STAP 1: Je GitHub gegevens voor de afbeeldingen
-            github_user: "padocentdebie", 
-            github_repo: "Q2les4aangiftewinkeldiefstal",
+        const CONFIG = {
+            lesTitel: "PV Matrix: CQ2PVAanfifte les 4",
+            casusLink: "https://gemini.google.com/gem/2ba817b11a77",
 
-            // STAP 2: De URL van de GEM (Firebase Database URL)
-            gem_url: "https://gemini.google.com/gem/2ba817b11a77",
+            // HIER PLAK JE DE VOLLEDIGE URL'S VAN JE FOTO'S (Bewijsstukken voor de les)
+            bewijsstukken: [
+                "https://images.pexels.com/photos/5411703/pexels-photo-5411703.jpeg", // Voorbeeld foto 1
+                "https://images.pexels.com/photos/6069352/pexels-photo-6069352.jpeg", // Voorbeeld foto 2
+                "https://images.pexels.com/photos/6069557/pexels-photo-6069557.jpeg"  // Voorbeeld foto 3
+            ],
 
-            // STAP 3: De titel van je pagina
-            titel: "PVAangifte les 4",
+            // De vinkjes voor de peer-review
+            vinkjes: ["Bestanddeelteksten", "7 Gouden W's", "Signalement", "OVT"],
 
-            // STAP 4: De criteria in de matrix
-            criteria: ["Bestanddeelteksten", "Ik-vorm", "7 Gouden W's", "Signalement", "OVT"]
+            // Firebase link
+            databaseURL: "https://q2les3samirgem-default-rtdb.europe-west1.firebasedatabase.app/"
         };
 
-        // STAP 5: De Firebase Sleutels (Alleen aanpassen als je een nieuwe GEM hebt)
         const firebaseConfig = {
             apiKey: "AIzaSyBj8dXkl1rEfyx54_MDy_tYd2P7kAeU8VQ",
-            authDomain: "q2les3samirgem.firebaseapp.com",
-            databaseURL: MIJN_CONFIG.gem_url, // Pakt automatisch de URL van hierboven
-            projectId: "q2les3samirgem",
-            appId: "1:8681998187:web:fd08067494a010dc572e2e"
+            databaseURL: CONFIG.databaseURL,
+            projectId: "q2les3samirgem"
         };
-
-        // ============================================================
-        // ⚙️ HIERONDER NIETS MEER AANPASSEN (SYSTEEM)
-        // ============================================================
     </script>
 
-    <div class="input-sectie">
-        <h3>Nieuw PV Indienen</h3>
-        <input type="text" id="student-naam" placeholder="Naam verbalisant...">
-        <input type="text" id="pv-foto-input" placeholder="Bestandsnaam foto op GitHub (bijv: bewijs.jpg) of volledige URL">
-        <textarea id="pv-tekst-input" rows="5" placeholder="Typ hier de PV tekst..."></textarea>
-        <button class="btn" onclick="verstuurData()">PUBLICEER NAAR MATRIX</button>
+    <div id="start-scherm">
+        <h1 id="kop-start"></h1>
+        
+        <div class="instellingen-blok">
+            <strong>Briefing / Bewijsmateriaal:</strong><br>
+            Bekijk de onderstaande afbeeldingen goed voordat je het verhoor start.
+            <div id="bewijs-container" class="bewijs-grid"></div>
+        </div>
+
+        <button class="btn" style="background:var(--blauw); font-size:1.2rem;" onclick="startSessie()">START VERHOOR & OPEN MATRIX 🚀</button>
     </div>
 
-    <div id="matrix-feed">Laden van gegevens...</div>
+    <div id="matrix-interface" style="display:none;">
+        <h2 id="kop-matrix"></h2>
+        <div style="background:#eef; padding:15px; border-radius:8px; margin-bottom:20px;">
+            <strong>Opdracht:</strong> Werk je PV uit en publiceer deze. Beoordeel daarna 2 klasgenoten op de criteria.
+        </div>
+        
+        <div style="border: 2px solid var(--blauw); padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <input type="text" id="naam" placeholder="Naam verbalisant..." style="width:100%; padding:10px; margin-bottom:10px;">
+            <textarea id="tekst" placeholder="Typ hier de tekst van het PV..."></textarea>
+            <button class="btn" style="background:var(--groen); margin-top:10px;" onclick="opslaan()">PUBLICEREN NAAR MATRIX</button>
+        </div>
+
+        <div id="feed"></div>
+        <button class="btn" style="background:var(--rood); margin-top:50px; opacity:0.3; width:auto;" onclick="wissen()">Sessie wissen</button>
+    </div>
 </div>
 
 <script>
-    // Systeem initialisatie
     firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    document.getElementById('main-title').innerText = MIJN_CONFIG.titel;
+    const db = firebase.database();
+    
+    // Initialiseer titels en bewijsfoto's
+    document.getElementById('kop-start').innerText = CONFIG.lesTitel;
+    document.getElementById('kop-matrix').innerText = CONFIG.lesTitel;
+    
+    const container = document.getElementById('bewijs-container');
+    CONFIG.bewijsstukken.forEach((url, index) => {
+        container.innerHTML += `
+            <div class="bewijs-item">
+                <img src="${url}" class="bewijs-img" onclick="window.open('${url}', '_blank')">
+                <div style="font-size:0.7rem; margin-top:5px;">Bewijsstuk #${index + 1}</div>
+            </div>`;
+    });
 
-    function verstuurData() {
-        const naam = document.getElementById('student-naam').value;
-        const fotoInput = document.getElementById('pv-foto-input').value;
-        const tekst = document.getElementById('pv-tekst-input').value;
+    function startSessie() {
+        window.open(CONFIG.casusLink, '_blank');
+        document.getElementById('start-scherm').style.display = 'none';
+        document.getElementById('matrix-interface').style.display = 'block';
+        laadData();
+    }
 
-        // Foto URL logica
-        let fotoUrl = fotoInput;
-        if(fotoInput && !fotoInput.startsWith('http')) {
-            fotoUrl = `https://raw.githubusercontent.com/${MIJN_CONFIG.github_user}/${MIJN_CONFIG.github_repo}/main/${fotoInput}`;
-        }
+    function opslaan() {
+        const n = document.getElementById('naam').value;
+        const t = document.getElementById('tekst').value;
+        if(!n || !t) return alert("Naam en tekst invullen!");
 
-        database.ref('matrix_data').push({
-            naam: naam,
-            foto: fotoUrl,
-            tekst: tekst,
-            datum: new Date().toLocaleString('nl-NL')
+        db.ref('pv_sessie').push({
+            student: n, inhoud: t,
+            tijd: new Date().toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'})
         }).then(() => {
+            document.getElementById('tekst').value = "";
             alert("Gepubliceerd!");
-            document.getElementById('pv-foto-input').value = "";
-            document.getElementById('pv-tekst-input').value = "";
         });
     }
 
-    database.ref('matrix_data').on('value', (snap) => {
-        const feed = document.getElementById('matrix-feed');
-        feed.innerHTML = '';
-        const data = snap.val();
-        if(!data) return;
-        Object.keys(data).reverse().forEach(key => {
-            const item = data[key];
-            const kaart = document.createElement('div');
-            kaart.className = 'aangifte-kaart';
-            kaart.innerHTML = `
-                <strong>${item.naam}</strong> <small>(${item.datum})</small><br>
-                ${item.foto ? `<img src="${item.foto}" class="pv-foto">` : ''}
-                <div style="margin-top:10px;">${item.tekst}</div>
-            `;
-            feed.appendChild(kaart);
+    function laadData() {
+        db.ref('pv_sessie').on('value', (s) => {
+            const f = document.getElementById('feed');
+            f.innerHTML = '<h3>Gezamenlijke Matrix:</h3>';
+            const data = s.val();
+            if(!data) return;
+            Object.keys(data).reverse().forEach(id => {
+                const item = data[id];
+                let vinkjesHtml = '';
+                CONFIG.vinkjes.forEach(v => {
+                    vinkjesHtml += `<label class="vinkje"><input type="checkbox"> ${v}</label>`;
+                });
+                f.innerHTML += `
+                    <div class="pv-kaart">
+                        <div style="font-size:0.8rem; color:grey;">${item.tijd} - Verbalisant: <b>${item.student}</b></div>
+                        <div style="white-space:pre-wrap; margin:15px 0;">${item.inhoud}</div>
+                        <div style="background:#f8f9fa; padding:15px; border-radius:8px;">
+                            <strong>Peer-review:</strong>
+                            <div class="vinkjes-grid">${vinkjesHtml}</div>
+                        </div>
+                    </div>`;
+            });
         });
-    });
+    }
+
+    function wissen() {
+        if(confirm("Alle data wissen?")) db.ref('pv_sessie').set(null);
+    }
 </script>
 </body>
 </html>
