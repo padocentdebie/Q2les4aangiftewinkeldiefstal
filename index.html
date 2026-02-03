@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>PV Matrix - Definitieve Versie</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --primary: #1d4e89; --success: #28a745; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        
+        .input-sectie { background: #fdfdfd; border: 2px solid var(--primary); padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+        h2 { color: var(--primary); margin-top: 0; }
+        
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; display: block; box-sizing: border-box; }
+        
+        .btn-groep { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 12px; cursor: pointer; border: none; font-weight: bold; border-radius: 6px; transition: 0.2s; font-size: 16px; }
+        .btn-publiceren { background: var(--success); color: white; }
+        .btn-publiceren:hover { background: #218838; }
+        
+        .aangifte-kaart { border: 1px solid #e0e0e0; padding: 20px; margin-bottom: 20px; border-radius: 8px; background: white; border-left: 6px solid var(--primary); }
+        .pv-foto { width: 100%; max-height: 450px; object-fit: contain; margin: 15px 0; border-radius: 4px; background: #f9f9f9; }
+        .pv-tekst { white-space: pre-wrap; line-height: 1.6; color: #333; }
+        .meta { font-size: 0.85em; color: #666; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="main-title">PV Matrix</h1>
+    
+    <div class="input-sectie">
+        <h2>Nieuw PV Indienen</h2>
+        <input type="text" id="student-naam" placeholder="Naam verbalisant...">
+        <input type="text" id="pv-foto-input" placeholder="Bestandsnaam foto (bijv. bewijs1.jpg)">
+        <textarea id="pv-tekst-input" rows="6" placeholder="Typ hier de volledige PV tekst..."></textarea>
+        
+        <div class="btn-groep">
+            <button class="btn btn-publiceren" onclick="verstuurData()">🚀 Nu Publiceren</button>
+        </div>
+    </div>
+
+    <div id="matrix-feed">Berichten worden geladen...</div>
+</div>
+
+<script>
+    // ============================================================
+    // CONFIGURATIE - PAS DIT AAN
+    // ============================================================
+    const MIJN_INSTELLINGEN = {
+        githubGebruiker: "padocentdebie", 
+        githubRepo: "Q2les4aangiftewinkeldiefstal",    
+        titelPagina: "Q2 PVAangifte - Les 4"
+    };
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBj8dXkl1rEfyx54_MDy_tYd2P7kAeU8VQ",
+        authDomain: "q2les3samirgem.firebaseapp.com",
+        databaseURL: "https://q2les3samirgem-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "q2les3samirgem",
+        storageBucket: "q2les3samirgem.firebasestorage.app",
+        messagingSenderId: "8681998187",
+        appId: "1:8681998187:web:fd08067494a010dc572e2e"
+    };
+
+    // Initialiseer Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    document.getElementById('main-title').innerText = MIJN_INSTELLINGEN.titelPagina;
+
+    // Helper functie voor de afbeelding link
+    function getPhotoUrl(input) {
+        if(!input) return "";
+        if(input.startsWith('http')) return input;
+        return `https://raw.githubusercontent.com/${MIJN_INSTELLINGEN.githubGebruiker}/${MIJN_INSTELLINGEN.githubRepo}/main/${input}`;
+    }
+
+    // De verzendknop functie
+    function verstuurData() {
+        const naam = document.getElementById('student-naam').value.trim();
+        const fotoInput = document.getElementById('pv-foto-input').value.trim();
+        const tekst = document.getElementById('pv-tekst-input').value.trim();
+
+        if (naam === "" || tekst === "") {
+            alert("⚠️ Vul minimaal je naam en de PV tekst in.");
+            return;
+        }
+
+        const fotoUrl = getPhotoUrl(fotoInput);
+
+        database.ref('matrix_data').push({
+            naam: naam,
+            foto: fotoUrl,
+            tekst: tekst,
+            tijdstip: new Date().toLocaleString('nl-NL')
+        }).then(() => {
+            // Velden leegmaken na succes
+            document.getElementById('student-naam').value = "";
+            document.getElementById('pv-foto-input').value = "";
+            document.getElementById('pv-tekst-input').value = "";
+            alert("✅ PV succesvol gepubliceerd!");
+        }).catch((error) => {
+            alert("❌ Fout bij verzenden: " + error.message);
+        });
+    }
+
+    // Real-time ophalen van data
+    database.ref('matrix_data').on('value', (snap) => {
+        const feed = document.getElementById('matrix-feed');
+        feed.innerHTML = '';
+        const data = snap.val();
+        
+        if(!data) {
+            feed.innerHTML = '<p>Nog geen PV\'s ingediend.</p>';
+            return;
+        }
+
+        // Toon nieuwste bovenaan
+        Object.keys(data).reverse().forEach(key => {
+            const item = data[key];
+            const kaart = document.createElement('div');
+            kaart.className = 'aangifte-kaart';
+            kaart.innerHTML = `
+                <div class="meta"><strong>Door:</strong> ${item.naam} | <strong>Datum:</strong> ${item.tijdstip || 'Onbekend'}</div>
+                ${item.foto ? `<img src="${item.foto}" class="pv-foto" onerror="this.onerror=null; this.src='https://via.placeholder.com/400x200?text=Afbeelding+Niet+Gevonden';">` : ''}
+                <div class="pv-tekst">${item.tekst}</div>
+            `;
+            feed.appendChild(kaart);
+        });
+    });
+</script>
+
+</body>
+</html>
