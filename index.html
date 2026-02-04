@@ -2,158 +2,209 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>PV Matrix - Docenten Paneel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PV Oefening - Dossier Hans (Winkeldiefstal)</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        :root { --blauw: #1d4e89; --groen: #28a745; --rood: #dc3545; --geel: #fffbe6; --grijs: #f4f7f9; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--grijs); margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        /* Dashboard Stijl */
-        .instellingen-blok { background: var(--geel); border: 1px solid #ffe58f; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        
-        /* Bewijsstukken Grid (De foto's van de docent) */
-        .bewijs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
-        .bewijs-item { background: white; padding: 10px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
-        .bewijs-img { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-        /* Matrix Feed */
-        .pv-kaart { border: 1px solid #ddd; padding: 20px; margin-bottom: 30px; border-radius: 8px; border-left: 8px solid var(--blauw); background: #fff; }
-        .vinkjes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
-        .vinkje { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; background: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #ddd; }
+    <style>
+        :root {
+            --primary-blue: #1d4e89;
+            --accent-gold: #f9d423;
+            --border-gray: #cbd5e0;
+            --bg-light: #f4f7f9;
+            --text-main: #2d3748;
+            --success-green: #28a745;
+            --danger-red: #e53e3e;
+        }
+
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg-light); color: var(--text-main); padding: 40px 20px; line-height: 1.6; }
+        .container { max-width: 950px; margin: auto; background: white; padding: 40px; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .header { color: var(--primary-blue); border-bottom: 3px solid var(--accent-gold); text-transform: uppercase; text-align: center; padding-bottom: 15px; margin-bottom: 30px; }
         
-        .btn { padding: 12px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 6px; color: white; width: 100%; }
-        textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; min-height: 150px; }
+        .stap-box { border: 1px solid var(--border-gray); border-left: 5px solid var(--primary-blue); padding: 25px; margin-bottom: 25px; background: #fff; }
+        .action-button { display: inline-block; background: var(--primary-blue); color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; text-transform: uppercase; font-size: 0.9em; margin: 5px; }
+        
+        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-gray); border-radius: 4px; box-sizing: border-box; margin-bottom: 10px; font-family: inherit; }
+        .submit-btn { background: var(--success-green); color: white; border: none; padding: 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; }
+
+        .aangifte-kaart { border: 1px solid var(--border-gray); margin-top: 25px; padding: 25px; background: #fff; border-radius: 4px; position: relative; }
+        .tekst-weergave { white-space: pre-wrap; background: #f8fafc; padding: 20px; border: 1px solid #edf2f7; margin: 15px 0; font-size: 1em; color: #334155; border-left: 3px solid var(--accent-gold); }
+        
+        /* Feedback badges */
+        .feedback-labels { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75em; font-weight: bold; background: #edf2f7; color: #718096; border: 1px solid #cbd5e0; }
+        .badge.active { background: var(--success-green); color: white; border-color: #1e8449; }
+
+        .feedback-display { background: #f0f7ff; border-left: 4px solid var(--primary-blue); padding: 15px; margin-top: 15px; font-size: 0.95em; }
+        .feedback-kolom { background: #fffdf2; border: 1px solid #f9d423; padding: 20px; border-radius: 4px; display: none; margin-top: 15px; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .secondary-btn { background: none; border: 1px solid var(--primary-blue); color: var(--primary-blue); padding: 8px 16px; cursor: pointer; font-size: 0.85em; font-weight: bold; border-radius: 4px; }
+        .all-pdf-btn { background: #4a5568; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; margin-bottom: 30px; font-weight: bold; text-transform: uppercase; }
+
+        .vinklijst { list-style: none; padding: 0; margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .vinklijst li { font-size: 0.85em; display: flex; align-items: center; }
+        .vinklijst input { width: auto; margin-right: 10px; margin-bottom: 0; cursor: pointer; }
+
+        .admin-zone { margin-top: 80px; padding: 30px; border: 2px dashed var(--danger-red); text-align: center; background: #fff5f5; border-radius: 8px; }
+        .reset-btn { background: var(--danger-red); color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    
-    <script>
-        // ============================================================
-        // 🛠️ HET DOCENTEN DASHBOARD (Pas hier je les aan)
-        // ============================================================
+    <div class="header"><h1>Dossier: Winkeldiefstal Hans</h1></div>
 
-        const CONFIG = {
-            lesTitel: "PV Matrix: CQ2PVAanfifte les 4",
-            casusLink: "https://gemini.google.com/gem/2ba817b11a77",
-
-            // HIER PLAK JE DE VOLLEDIGE URL'S VAN JE FOTO'S (Bewijsstukken voor de les)
-            bewijsstukken: [
-                "https://github.com/padocentdebie/Q2les4aangiftewinkeldiefstal/blob/main/Gemini_Generated_Image_dsm0t7dsm0t7dsm0.png?raw=true", // Voorbeeld foto 1
-           
-            ],
-
-            // De vinkjes voor de peer-review
-            vinkjes: ["Bestanddeelteksten","ik-vorm", "7 Gouden W's", "Signalement","Kaal decor tegenwoordige tijd", "Veranderlijk decor verleden tijd, "OVT"],
-
-            // Firebase link
-            databaseURL: "https://q2les3samirgem-default-rtdb.europe-west1.firebasedatabase.app/"
-        };
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBj8dXkl1rEfyx54_MDy_tYd2P7kAeU8VQ",
-            databaseURL: CONFIG.databaseURL,
-            projectId: "q2les3samirgem"
-        };
-    </script>
-
-    <div id="start-scherm">
-        <h1 id="kop-start"></h1>
-        
-        <div class="instellingen-blok">
-            <strong>Briefing / Bewijsmateriaal:</strong><br>
-            Bekijk de onderstaande afbeeldingen goed voordat je het verhoor start.
-            <div id="bewijs-container" class="bewijs-grid"></div>
-        </div>
-
-        <button class="btn" style="background:var(--blauw); font-size:1.2rem;" onclick="startSessie()">START VERHOOR & OPEN MATRIX 🚀</button>
+    <div class="stap-box">
+        <h3>1. Informatieverzameling & Bewijs</h3>
+        <p>Hoor de aangever Hans uit en bekijk de camerabeelden voor details.</p>
+        <center>
+            <a href="https://gemini.google.com/gem/2ba817b11a77" target="_blank" class="action-button">Start verhoor (Hans)</a>
+            <a href="https://raw.githubusercontent.com/padocentdebie/Q2les4aangiftewinkeldiefstal/main/Gemini_Generated_Image_dsm0t7dsm0t7dsm0.png" target="_blank" class="action-button" style="background:#4a5568;">📸 Camerabeelden</a>
+        </center>
     </div>
 
-    <div id="matrix-interface" style="display:none;">
-        <h2 id="kop-matrix"></h2>
-        <div style="background:#eef; padding:15px; border-radius:8px; margin-bottom:20px;">
-            <strong>Opdracht:</strong> Werk je PV uit en publiceer deze. Beoordeel daarna 2 klasgenoten op de criteria.
-        </div>
-        
-        <div style="border: 2px solid var(--blauw); padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-            <input type="text" id="naam" placeholder="Naam verbalisant..." style="width:100%; padding:10px; margin-bottom:10px;">
-            <textarea id="tekst" placeholder="Typ hier de tekst van het PV..."></textarea>
-            <button class="btn" style="background:var(--groen); margin-top:10px;" onclick="opslaan()">PUBLICEREN NAAR MATRIX</button>
-        </div>
+    <div class="stap-box">
+        <h3>2. Proces-Verbaal Inleveren</h3>
+        <input type="text" id="student-naam" placeholder="Je naam (verbalisant)">
+        <textarea id="input-tekst" placeholder="Typ hier de officiële aangifte tekst (ik-vorm, OVT)..." style="height: 150px;"></textarea>
+        <button class="submit-btn" onclick="verstuurData()">Publiceer voor de klas</button>
+    </div>
 
-        <div id="feed"></div>
-        <button class="btn" style="background:var(--rood); margin-top:50px; opacity:0.3; width:auto;" onclick="wissen()">Sessie wissen</button>
+    <h2 style="color: var(--primary-blue); margin-top: 50px;">Live Feed</h2>
+    <button class="all-pdf-btn" onclick="downloadAllePDFs()">Download Alle PV's als PDF</button>
+    
+    <div id="live-feed">Wachten op inzendingen...</div>
+
+    <div class="admin-zone">
+        <h3 style="color: var(--danger-red); margin-top: 0;">Beheer</h3>
+        <button class="reset-btn" onclick="wisAlles()">Sessie Volledig Resetten</button>
     </div>
 </div>
 
 <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBj8dXkl1rEfyx54_MDy_tYd2P7kAeU8VQ",
+        authDomain: "q2les3samirgem.firebaseapp.com",
+        databaseURL: "https://q2les3samirgem-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "q2les3samirgem",
+        storageBucket: "q2les3samirgem.firebasestorage.app",
+        messagingSenderId: "8681998187",
+        appId: "1:8681998187:web:fd08067494a010dc572e2e"
+    };
+
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    
-    // Initialiseer titels en bewijsfoto's
-    document.getElementById('kop-start').innerText = CONFIG.lesTitel;
-    document.getElementById('kop-matrix').innerText = CONFIG.lesTitel;
-    
-    const container = document.getElementById('bewijs-container');
-    CONFIG.bewijsstukken.forEach((url, index) => {
-        container.innerHTML += `
-            <div class="bewijs-item">
-                <img src="${url}" class="bewijs-img" onclick="window.open('${url}', '_blank')">
-                <div style="font-size:0.7rem; margin-top:5px;">Bewijsstuk #${index + 1}</div>
-            </div>`;
+    const database = firebase.database();
+
+    function verstuurData() {
+        const naam = document.getElementById('student-naam').value;
+        const tekst = document.getElementById('input-tekst').value;
+        if(!naam || !tekst) return alert("Naam en tekst zijn verplicht.");
+
+        database.ref('aangiftes').push({
+            naam: naam,
+            tekst: tekst,
+            feedback: { v1:false, v2:false, v3:false, v4:false, v5:false, v6:false, opmerking: "" }
+        });
+        document.getElementById('input-tekst').value = '';
+        document.getElementById('student-naam').value = '';
+    }
+
+    function saveFeedback(key) {
+        const nieuweOpm = document.getElementById('opm-' + key).value;
+        const fbRef = database.ref('aangiftes/' + key + '/feedback');
+        
+        fbRef.once('value').then((snapshot) => {
+            const huidigeData = snapshot.val() || {};
+            const oudeTekst = huidigeData.opmerking || "";
+            
+            let samengevoegdeTekst = oudeTekst;
+            if(nieuweOpm.trim()) {
+                samengevoegdeTekst = oudeTekst ? oudeTekst + "\n---\n" + nieuweOpm : nieuweOpm;
+            }
+
+            const updates = {
+                opmerking: samengevoegdeTekst,
+                v1: document.getElementById('v1-'+key).checked,
+                v2: document.getElementById('v2-'+key).checked,
+                v3: document.getElementById('v3-'+key).checked,
+                v4: document.getElementById('v4-'+key).checked,
+                v5: document.getElementById('v5-'+key).checked,
+                v6: document.getElementById('v6-'+key).checked
+            };
+
+            return fbRef.update(updates);
+        }).then(() => {
+            alert("Beoordeling bijgewerkt.");
+            document.getElementById('opm-' + key).value = '';
+            toggleFB(key);
+        });
+    }
+
+    database.ref('aangiftes').on('value', (snapshot) => {
+        const feed = document.getElementById('live-feed');
+        feed.innerHTML = '';
+        const data = snapshot.val();
+        if (data) {
+            Object.keys(data).reverse().forEach(key => {
+                const item = data[key];
+                const fb = item.feedback || {};
+                const kaart = document.createElement('div');
+                kaart.className = 'aangifte-kaart';
+                
+                const labels = [
+                    {id: 'v1', txt: '7 W\'s'}, {id: 'v2', txt: 'Ik-vorm'}, 
+                    {id: 'v3', txt: 'OVT'}, {id: 'v4', txt: 'Zakelijk'}, 
+                    {id: 'v5', txt: 'Wetenschap'}, {id: 'v6', txt: 'Compleet'}
+                ];
+
+                let labelHtml = labels.map(l => `<span class="badge ${fb[l.id] ? 'active' : ''}">${l.txt}</span>`).join('');
+                const geformatteerdeFeedback = fb.opmerking ? fb.opmerking.replace(/\n/g, '<br>') : 'Geen opmerkingen.';
+
+                kaart.innerHTML = `
+                    <div class="pv-content">
+                        <strong style="color:var(--primary-blue);">Verbalisant: ${item.naam}</strong>
+                        <div class="tekst-weergave">${item.tekst}</div>
+                        
+                        <div class="feedback-labels">${labelHtml}</div>
+
+                        <div class="feedback-display">
+                            <strong>Docentenfeedback:</strong>
+                            <div>${geformatteerdeFeedback}</div>
+                        </div>
+                        
+                        <div class="btn-group">
+                            <button class="secondary-btn" onclick="toggleFB('${key}')">Beoordelen / Aanvinken</button>
+                        </div>
+                    </div>
+
+                    <div class="feedback-kolom" id="fb-${key}">
+                        <ul class="vinklijst">
+                            ${labels.map(l => `<li><input type="checkbox" id="${l.id}-${key}" ${fb[l.id]?'checked':''}> ${l.txt}</li>`).join('')}
+                        </ul>
+                        <textarea id="opm-${key}" placeholder="Nieuwe opmerking toevoegen..." style="height:60px;"></textarea>
+                        <button class="submit-btn" style="padding:10px;" onclick="saveFeedback('${key}')">Opslaan</button>
+                    </div>
+                `;
+                feed.appendChild(kaart);
+            });
+        }
     });
 
-    function startSessie() {
-        window.open(CONFIG.casusLink, '_blank');
-        document.getElementById('start-scherm').style.display = 'none';
-        document.getElementById('matrix-interface').style.display = 'block';
-        laadData();
+    function toggleFB(id) {
+        const el = document.getElementById('fb-' + id);
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
     }
 
-    function opslaan() {
-        const n = document.getElementById('naam').value;
-        const t = document.getElementById('tekst').value;
-        if(!n || !t) return alert("Naam en tekst invullen!");
-
-        db.ref('pv_sessie').push({
-            student: n, inhoud: t,
-            tijd: new Date().toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'})
-        }).then(() => {
-            document.getElementById('tekst').value = "";
-            alert("Gepubliceerd!");
-        });
+    function downloadAllePDFs() {
+        const element = document.getElementById('live-feed');
+        html2pdf().set({ margin: 10, filename: 'Dossier_Hans_Feedback.pdf', jsPDF: { unit: 'mm', format: 'a4' } }).from(element).save();
     }
 
-    function laadData() {
-        db.ref('pv_sessie').on('value', (s) => {
-            const f = document.getElementById('feed');
-            f.innerHTML = '<h3>Gezamenlijke Matrix:</h3>';
-            const data = s.val();
-            if(!data) return;
-            Object.keys(data).reverse().forEach(id => {
-                const item = data[id];
-                let vinkjesHtml = '';
-                CONFIG.vinkjes.forEach(v => {
-                    vinkjesHtml += `<label class="vinkje"><input type="checkbox"> ${v}</label>`;
-                });
-                f.innerHTML += `
-                    <div class="pv-kaart">
-                        <div style="font-size:0.8rem; color:grey;">${item.tijd} - Verbalisant: <b>${item.student}</b></div>
-                        <div style="white-space:pre-wrap; margin:15px 0;">${item.inhoud}</div>
-                        <div style="background:#f8f9fa; padding:15px; border-radius:8px;">
-                            <strong>Peer-review:</strong>
-                            <div class="vinkjes-grid">${vinkjesHtml}</div>
-                        </div>
-                    </div>`;
-            });
-        });
-    }
-
-    function wissen() {
-        if(confirm("Alle data wissen?")) db.ref('pv_sessie').set(null);
+    function wisAlles() {
+        if(confirm("Alles wissen?")) database.ref('aangiftes').set(null);
     }
 </script>
 </body>
